@@ -1,16 +1,47 @@
-mod asmcalls;
+#[macro_use]
+pub mod asmcalls;
+pub mod ntcalls;
+pub mod err;
 
-fn main()
+use nt_utils::pe::*;
+use nt_utils::peb::*;
+
+use crate::ntcalls::*;
+
+#[macro_export]
+macro_rules! ds
 {
-    let res: usize = asmcalls::syscall(0x26);
-}
+    ($func: literal, $($args:expr),*) =>
+    {
+        let mut num = 0;
+        
+        $(
+            let a = $args;
+            num += 1;
+        )*
 
+        println!("{} arguments", num);
+        /*print!("print: {}", $func);
+        
+        $(
+            print!(" {}", $args);
+        )*
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+        print!("\n");*/
+
+        println!("not implemented");
     }
 }
+
+
+pub fn init()
+{
+    let nt = match NTApi::new()
+    {
+        Ok(s) => s,
+        Err(e) => panic!("{}", e),
+    };
+
+}
+
+
