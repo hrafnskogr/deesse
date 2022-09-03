@@ -1,20 +1,22 @@
-use std::cmp::{PartialOrd, Ordering};
-use nt_utils::{peb::*, pe::*, err::PEErr};
+use nt_utils::{peb::*, pe::*};
+use sha256::digest;
+use std::collections::HashMap;
+
 use crate::err::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NTApi
 {
-    //seed:         Vec<u8>,
-    syscalls:        Vec<Syscall>,
+    syscalls:   HashMap<String, Syscall>,
 }
 
-#[derive(Debug, Clone)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Syscall
 {
-    name: String,
     rva: usize,
+    name: String,
     num: usize,
 }
 
@@ -30,7 +32,7 @@ impl NTApi
 {
     pub fn new() -> Result<NTApi, DSErr>
     {
-        let mut nt_api = NTApi { syscalls: Vec::new() };
+        let mut nt_api = NTApi { syscalls: HashMap::new() };
         nt_api.load()?;
 
         Ok(nt_api)
@@ -44,13 +46,7 @@ impl NTApi
             Err(e) => return Err(e),
         };
 
-        //println!("{:#x?}", ntdll);
-
         self.populate_zw_syscalls(ntdll);
-        self.sort_syscalls();
-        self.assign_syscall_number();
-
-        println!("{:#x?}", self);
 
         Ok(())
     }
@@ -69,50 +65,44 @@ impl NTApi
 
     fn populate_zw_syscalls(&mut self, ntdll: PEImage)
     {
-        for ord in &ntdll
+        let mut buf: Vec<Syscall> = Vec::new();
+
+        for (ord, idx) in &ntdll
         {
-            let fname = ntdll.fname_from_ord(ord);
+            let fname = ntdll.fname_from_index(idx);
 
             if fname.starts_with("Zw")
             {
-                self.syscalls.push(Syscall::new(String::from(fname.replacen("Zw", "Nt", 1)),
-                                   ntdll.faddr_from_ord(ord) - ntdll.base_addr,
-                                   0));
-                //self.syscalls.push(Syscall::new(String::from(fname), ntdll.faddr_from_ord(ord), 0));
-
+                let sysc = String::from(fname.replacen("Zw", "Nt", 1));
+                buf.push(Syscall::new(sysc,
+                                      ntdll.rva_from_ord(ord),
+                                      0));
             }
+        }
+
+        buf.sort_unstable();
+        buf.iter_mut()
+           .enumerate()
+           .for_each(|(x, y)| {
+                y.num = x;
+           });
+
+        for sc in buf
+        {
+            let sysc_name = format!("{}{}", crate::SALT, sc.name);
+            let sysc_h = digest(sysc_name);
+            self.syscalls.insert(sysc_h, sc.clone());
         }
     }
 
-    // Simple bubble sort
-    fn sort_syscalls(&mut self)
+    pub fn get_syscall(&self, hfname: &str) -> usize
     {
-        let len = self.syscalls.len();
-        let mut sorted = true;
-
-        while sorted
+        match self.syscalls.get(hfname)
         {
-            sorted = false;
-            for i in 0..len
-            {
-                if i < (len - 1)
-                {
-                    if self.syscalls[i].rva > self.syscalls[i+1].rva
-                    {
-                        self.syscalls.swap(i, i+1);
-                        sorted = true;
-                    }
-                }
-            }
-        }
-    }
-
-    fn assign_syscall_number(&mut self)
-    {
-        for i in 0..self.syscalls.len()
-        {
-            self.syscalls[i].num = i; 
+            Some(sysc) => sysc.num,
+            _ => panic!("Could not find the system call"),
         }
     }
 }
+
 

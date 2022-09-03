@@ -6,14 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nt_utils = { path = "../nt_utils" }
+nt_utils = { git = "https://github.com/hrafnskogr/nt_utils" }
+sha256 = "1.0.3"
 
-#{ git = "https://github.com/hrafnskogr/nt_utils" }
-
-[lib]
-name = "deesse"
-path = "src/lib.rs"
-
-[[bin]]
-name = "deesse_tester"
-path = "src/bin/main.rs"
+[build-dependencies]
+rand = "0.8.5"
