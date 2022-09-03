@@ -1,11 +1,11 @@
 mod salt;
 
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::Write;
 use rand::Rng;
 
 
-fn main()
+fn main() -> Result<(), std::io::Error>
 {
     let mut rng = rand::thread_rng();
     let mut xs_gen = salt::XorShift128::from_seed(rng.gen::<u64>(), rng.gen::<u64>());
@@ -35,14 +35,12 @@ use ntcalls::*;
 // for cleaner use
 pub use crate::asmcalls::*;
 
-"#);
+"#)?;
 
-    writeln!(&mut file, "pub static SALT: &str = \"{}\";", salt);
-    writeln!(&mut file, "{}", "pub static NT: OnceCell<NTApi> = OnceCell::new(|| {NTApi::new().unwrap()} );"); 
+    writeln!(&mut file, "pub static SALT: &str = \"{}\";", salt)?;
+    writeln!(&mut file, "{}", "pub static NT: OnceCell<NTApi> = OnceCell::new(|| {NTApi::new().unwrap()} );")?; 
     
-
-
-
+    Ok(())
 }
 
 

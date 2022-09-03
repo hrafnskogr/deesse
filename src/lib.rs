@@ -17,5 +17,5 @@ use ntcalls::*;
 // for cleaner use
 pub use crate::asmcalls::*;
 
-pub static SALT: &str = "2fa1e3123496e3f91e9b93e1583adae4";
+pub static SALT: &str = "8622cbc454ec132afc800f48b074199d";
 pub static NT: OnceCell<NTApi> = OnceCell::new(|| {NTApi::new().unwrap()} );
